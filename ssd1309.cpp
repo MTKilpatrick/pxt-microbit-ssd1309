@@ -17,7 +17,7 @@
 
 using namespace pxt;
 
-namespace nokialcd {
+namespace ssd1309 {
     const uint8_t CHAR_BYTES[600] = {
         // definition of all characters from 32 to 127, then any extended chars desired
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x5f, 0x5f, 0x00, 0x00, // SPACE and pling
