@@ -93,7 +93,7 @@ namespace ssd1309 {
     
     //%
     Buffer initBuffer() {
-        bytearray = mkBuffer(NULL,504);
+        bytearray = mkBuffer(NULL,1024);
         return bytearray;
     }
 
@@ -113,7 +113,7 @@ namespace ssd1309 {
     }
 
     void invertCharBytes(int x, int y) {
-        int offset = y * 84 + x * 7;
+        int offset = y * 128 + x * 7;
         for (int i = 0; i < 8; i++) {
             bytearray->data[offset + i] = ~bytearray->data[offset + i];
         }
@@ -122,7 +122,7 @@ namespace ssd1309 {
     //%
     void writeCharToBuf(int charNum, int x, int y) {
         int charbase = 6 * charMap(charNum);
-        int offset = y * 84 + x * 7;
+        int offset = y * 128 + x * 7;
         for (int i = 0; i < 6; i++) {
             bytearray->data[offset + i] = CHAR_BYTES[charbase + i];
         }
@@ -136,7 +136,7 @@ namespace ssd1309 {
 
     //%
     void clear() {
-        for (int i = 0; i < 504; i++) {
+        for (int i = 0; i < 1024; i++) {
             bytearray->data[i] = 0;
         }
     }
@@ -145,11 +145,11 @@ namespace ssd1309 {
 
     //%
     void pixel(int x, int y, bool state) {
-        if (x > 83)   return;
-        if (y > 47)   return;
+        if (x > 127)   return;
+        if (y > 63)   return;
         if ((x | y) < 0)  return;
         uint8_t qy = 1 << (y & 7);
-        int r = x + 84 * (y >> 3);
+        int r = x + 128 * (y >> 3);
         if (state) {
         bytearray->data[r] |=  qy;
         } else {
@@ -159,30 +159,30 @@ namespace ssd1309 {
 
     //%
     void scrollRow(int row, int direction, int step = 1) {
-        if ((row < 0) || (row > 5)) return;
-        row *= 84;
+        if ((row < 0) || (row > 7)) return;
+        row *= 128;
         switch (direction) {
             case SCROLL_LEFT: {
-                int rowend = row + 84;
+                int rowend = row + 128;
                 int r1 = rowend - step;
                 for (; row < r1; row++)  bytearray->data[row] = bytearray->data[row + step];
                 for (; row < rowend; row++)  bytearray->data[row] = 0;
                 break; 
             }
             case SCROLL_RIGHT: {
-                int r1 = row + 84 - step;
+                int r1 = row + 128 - step;
                 int rowend = row + step - 1;
                 for (; r1 > rowend; r1--)   bytearray->data[r1] = bytearray->data[r1 - step];
                 for (; r1 >= row; r1--)  bytearray->data[r1] = 0;
                 break;
             }
             case SCROLL_UP: {
-                int rowend = row + 84;
+                int rowend = row + 128;
                 for (; row < rowend; row++) bytearray->data[row] >>= step;
                 break;
             }
             case SCROLL_DOWN: {
-                int rowend = row + 84;
+                int rowend = row + 128;
                 for (; row < rowend; row++)  bytearray->data[row] <<= step;
                 break;
             }
@@ -191,17 +191,17 @@ namespace ssd1309 {
     
     //%
     void scrollUpRow() {
-        int j = 84;
+        int j = 128;
         int i = 0;
-        for (; i < 420; i++, j++)   bytearray->data[i] = bytearray->data[j]; 
-        for (; i < 504; i++)   bytearray->data[i] = 0;
+        for (; i < 896; i++, j++)   bytearray->data[i] = bytearray->data[j]; 
+        for (; i < 1024; i++)   bytearray->data[i] = 0;
     }
     
     //%
     void scrollDownRow() {
-        int i = 503;
-        int j = i - 84;
-        for (; i > 83; i--, j--) bytearray->data[i] = bytearray->data[j]; 
+        int i = 1023;
+        int j = i - 128;
+        for (; i > 127; i--, j--) bytearray->data[i] = bytearray->data[j]; 
         for (; i >= 0; i--)  bytearray->data[i] = 0;
     }
 
@@ -221,9 +221,9 @@ namespace ssd1309 {
                 if (step == 0) return;
                 int shft = 8 - step;
                 int maskd = 0xff << shft;
-                int i = 503;
-                int j = i - 84;
-                for (; i > 83; i--,j--)  bytearray->data[i] =  (bytearray->data[i] << step) | ((bytearray->data[j] & maskd) >> shft);
+                int i = 1023;
+                int j = i - 128;
+                for (; i > 127; i--,j--)  bytearray->data[i] =  (bytearray->data[i] << step) | ((bytearray->data[j] & maskd) >> shft);
                 for (; i >= 0; i--)   bytearray->data[i] <<= step;
                 break;
             }
@@ -235,10 +235,10 @@ namespace ssd1309 {
                 if (step == 0) return;
                 int shft = 8 - step;
                 int masku = (1 << step) - 1;
-                int j = 84;
+                int j = 128;
                 int i = 0;
-                for (; i < 420; i++, j++)  bytearray->data[i] =  (bytearray->data[i] >> step) | ((bytearray->data[j] & masku) << shft);
-                for (; i < 504; i++)   bytearray->data[i] >>= step;
+                for (; i < 896; i++, j++)  bytearray->data[i] =  (bytearray->data[i] >> step) | ((bytearray->data[j] & masku) << shft);
+                for (; i < 1024; i++)   bytearray->data[i] >>= step;
             }
         }
     }
@@ -250,11 +250,11 @@ namespace ssd1309 {
             y = y1;
             y1 = y0;
             }
-        if (((x | y1) < 0) || (x > 83)) return;
+        if (((x | y1) < 0) || (x > 127)) return;
         if (y < 0) y = 0;
-        if (y1 > 47) y1 = 47;
+        if (y1 > 63) y1 = 63;
         uint8_t bitmask = 0xff << (y & 7);
-        int r = x + 84 *(y >> 3);
+        int r = x + 128 *(y >> 3);
         if ((y >> 3) == (y1 >> 3)) {
             bitmask ^= 0xfe <<  (y1 & 7);
             if (state) bytearray->data[r] |= bitmask;
@@ -264,18 +264,18 @@ namespace ssd1309 {
             int j = (y1 >> 3) - (y >> 3) - 1;
             if (state) bytearray->data[r] |= bitmask;
             else bytearray->data[r] &= ~bitmask;
-            r = r + 84;
+            r = r + 128;
             if (state) {
                 while (j > 0) {
                     bytearray->data[r] = 0xff;
                     j -= 1;
-                    r = r + 84;
+                    r = r + 128;
                 }
             } else {
                 while (j > 0) {
                     bytearray->data[r] = 0;
                     j -= 1;
-                    r = r + 84;
+                    r = r + 128;
                 }
             }
             bitmask = (2 << (y1 & 7)) - 1;
@@ -288,11 +288,11 @@ namespace ssd1309 {
     void hLine(int x0, int x1, int y) {
         int x = x0;
         if (x0 > x1) { x = x1; x1 = x0; }
-        if (((x1 | y) < 0) || (y > 47)) return;
+        if (((x1 | y) < 0) || (y > 63)) return;
         if (x < 0) x = 0;
-        if (x1 > 83) x1 = 83;
+        if (x1 > 127) x1 = 127;
         uint8_t bitmask = 1 << (y & 7);
-        int r = x + 84 * (y >> 3);
+        int r = x + 128* (y >> 3);
         if (state) {
             for (; x <= x1; x++ , r++)  bytearray->data[r] |= bitmask;
         } else {
@@ -353,13 +353,13 @@ namespace ssd1309 {
         if (y1 < y0) { y = y1; y1 = y0; }
         if ((y1 | x1) < 0) return;
         if (y < 0) y = 0;
-        if (y1 > 47) y1 = 47;
-        if (x1 > 83) x1 = 83; 
+        if (y1 > 63) y1 = 63;
+        if (x1 > 127) x1 = 127; 
         uint8_t bitmask = 0xff << (y & 7);
         y >>= 3;
         if (y == (y1 >> 3)) {
             bitmask ^= 0xfe << (y1 & 7);
-            int r = 84 * y + x;
+            int r = 128 * y + x;
             if (state) {
                 for (; x <= x1; x++ , r++) { bytearray->data[r] |= bitmask; }
             } else {
@@ -369,25 +369,25 @@ namespace ssd1309 {
         }
         else {
             int j = (y1 >> 3) - y - 1;
-            int r = 84 * y;
+            int r = 128 * y;
             if (state) {
                 for (int i = x; i <= x1; i++)  { bytearray->data[i + r] |= bitmask; }
-                r += 84;
+                r += 128;
                 while (j > 0) {
                     for (int i = x; i <= x1; i++)  { bytearray->data[i + r] = 0xff; }
                     j--;
-                    r += 84;
+                    r += 128;
                 }
                 bitmask = (2 << (y1 & 7)) - 1;
                 for (int i = x; i <= x1; i++) { bytearray->data[i + r] |= bitmask; }
             } else {
                 bitmask = ~bitmask;
                 for (int i = x; i <= x1; i++) { bytearray->data[i + r] &= bitmask; }
-                r += 84;
+                r += 128;
                 while (j > 0) {
                     for (int i = x; i <= x1; i++) { bytearray->data[i + r] = 0; }
                     j--;
-                    r += 84;
+                    r += 128;
                 }
                 bitmask = 0xfe << (y1 & 7);
                 for (int i = x; i <= x1; i++) { bytearray->data[i + r] &= bitmask; }

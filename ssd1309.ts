@@ -29,7 +29,6 @@ namespace ssd1309 {
     let lcdDE: number = 0
 
 
-
     // shim for mapping the assembler buffer code to the TS function
     //% shim=sendSPIBufferAsm
     function sendSPIBuffer(buf: Buffer, pina: DigitalPin, pinb: DigitalPin, pinc: DigitalPin) {
@@ -52,8 +51,6 @@ namespace ssd1309 {
     export function show(): void {
         sendSPIBuffer(getBuffer(), LCD_MOSI, LCD_CLK, LCD_CE)
     }
-
-
 
     const FILL_X = hex`fffefcf8f0e0c08000`
     const FILL_B = hex`0103070f1f3f7fffff`
@@ -95,12 +92,12 @@ namespace ssd1309 {
 
     //% shim=ssd1309::getBuffer
     function getBuffer(): Buffer {
-        return pins.createBuffer(504)
+        return pins.createBuffer(1024)
     }
 
     //% shim=ssd1309::initBuffer
     function initBuffer(): Buffer {
-        return pins.createBuffer(504)
+        return pins.createBuffer(1024)
     }
 
     //% shim=ssd1309::writeCharToBuf
@@ -127,35 +124,6 @@ namespace ssd1309 {
     }
 
 
-    function setYAddr(y: number): void {
-        cmdSPI(0x40 + y)
-    }
-
-    function setXAddr(x: number): void {
-        cmdSPI(0x80 + x)
-    }
-
-
-    function lcdDisplayMode(mode: number): void {
-        lcdDE = ((mode & 2) << 1) + (mode & 1)
-        cmdSPI(0x08 | lcdDE)
-    }
-
-    function writeFunctionSet(v: number, h: number) {
-        cmdSPI(0x20 | (v << 1) | (h & 1))
-    }
-
-    function lcdExtendedFunctions(temp: number, bias: number, vop: number) {
-        pins.digitalWritePin(LCD_DC, LCD_CMD)
-        sendSPIByte(0x21, LCD_MOSI, LCD_CLK, LCD_CE)
-        sendSPIByte(0x04 | (0x03 & temp), LCD_MOSI, LCD_CLK, LCD_CE)
-        sendSPIByte(0x10 | (0x07 & bias), LCD_MOSI, LCD_CLK, LCD_CE)
-        sendSPIByte(0x80 | (0x7f & vop), LCD_MOSI, LCD_CLK, LCD_CE)
-        sendSPIByte(0x20, LCD_MOSI, LCD_CLK, LCD_CE)
-        pins.digitalWritePin(LCD_DC, LCD_DAT)
-    }
-
-
 
     //% block="reset LCD display"
     //% blockId=ssd1309_init
@@ -170,10 +138,19 @@ namespace ssd1309 {
         pins.digitalWritePin(LCD_RST, 0)
         basic.pause(100)
         pins.digitalWritePin(LCD_RST, 1)
-        lcdExtendedFunctions(0, 3, 63)
-        lcdDisplayMode(2)
-        setXAddr(0)
-        setYAddr(0)
+        basic.pause(100)
+        cmdSPI(0xAE)    // display off
+        cmdSPI(0xA4)    // not entire display on
+        cmdSPI(0x20); cmdSPI(0x00) // horizontal mode
+        cmdSPI(0x21); cmdSPI(0x00); cmdSPI(0x7f)  // column address
+        cmdSPI(0x22); cmdSPI(0x00); cmdSPI(0x3f)  // page address
+        // following two commands rotate by 180!
+        cmdSPI(0xC8)    // scan direction C0/C8
+        cmdSPI(0xA1)    // segment remap no 
+        cmdSPI(0xAF)    // display on
+
+
+//        sendCommands()
         setState(true)
         clear()
     }
