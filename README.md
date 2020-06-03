@@ -1,6 +1,6 @@
 ## nokialcd
 
-This driver suite for the Nokia 3110/3410 LCD screen.
+This driver suite for the SSD1309 128x64 display SPI
 
 
 ## Licence
@@ -34,5 +34,5 @@ SOFTWARE.
 * for PXT/microbit
 
 ```package
-nokialcd=github:MTKilpatrick/pxt-nokialcd
+ssd1309=github:MTKilpatrick/pxt-microbit-ssd1309
 ```
