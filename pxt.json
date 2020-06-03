@@ -1,0 +1,23 @@
+{
+    "name": "ssd1309",
+    "version": "0.0.1",
+    "description": "MTKilpatrick SSD1309",
+    "license": "MIT",
+    "dependencies": {
+        "core": "*"
+    },
+    "files": [
+        "ssd1309.ts",
+        "ssd1309.cpp",
+        "SPI.asm",
+        "README.md"
+    ],
+    "testFiles": [
+        "test.ts"
+    ],
+    "public": true,
+    "supportedTargets": [
+        "microbit"
+    ],
+    "preferredEditor": "tsprj"
+}
