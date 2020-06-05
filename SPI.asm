@@ -1,11 +1,13 @@
+; routines for graphics and SPI
+
 writePixelAsm:
     push {r4,lr}
+    mov r7, r2
     cmp r0, #127        ;  if (x >127) or (x < 0), extit
     bhs .wpreturn
     lsrs r3, r1, #3     ; r3 = y >> 3
     cmp r3, #7          ;   if r3 > 7, exit (y > 63) or (y<0)
     bhs .wpreturn
-    mov r7, r2          ; save State
     lsls r3, r3, #7     ; r3 = r3 << 7
     movs r4, #7         ; r4 = 7
     ands r1, r4         ; r1 = y & 7
@@ -15,20 +17,19 @@ writePixelAsm:
     mov r9, r3          ; save r3
     bl ssd1309::getMyBufferData ; r0 points to data
     mov r3, r9          ; restore f3
-    movs r2, r7          ; restore r2
-    beq .wpfalse        ; if State false go to...
     ldrb r1, [r0, r4]
+    mov r2, r7
+    cmp r2, #5
+    beq .wpfalse
     orrs r1, r3
-    movs r1, #0xAA
-    strb r1, [r0, r4]
-    pop {r4,pc}
-.wpfalse:
-    ldrb r1, [r0, r4]
-    bics r1, r3
-    movs r1, #255
     strb r1, [r0, r4]
 .wpreturn:
-    pop {r4,pc}
+    pop {r4, pc}
+.wpfalse:
+    bics r1, r3
+    strb r1, [r0, r4]
+    b .wpreturn
+
 
 sendSPIBufferAsm:
 

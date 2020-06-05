@@ -45,9 +45,8 @@ namespace ssd1309 {
 
     //% shim=writePixelAsm
     export function writePixelAsm(x: number, y: number, state: boolean) {
-        
+        return
     }
-
     // Send the buffer to the display (get the buffer first from the C++ realm)
     // To call the assembler code directy from Typescrip, use writeSPIBufferTS()
     // To call the assembler from C++, call the C++ fuction writeSPIBufferC
