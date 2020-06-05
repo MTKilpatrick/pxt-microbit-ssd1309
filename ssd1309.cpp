@@ -73,22 +73,14 @@ namespace ssd1309 {
     };
     
     const int EXT_CHARS[4] = {128, 154, 163, 247};
-
-//    DigitalOut LCD_CE(mbit_p12);
-//    DigitalOut LCD_RST(mbit_p8);
-//    DigitalOut LCD_DC(mbit_p16);
+    
     static Buffer bytearray = NULL;
     static bool state = true;
     static int lcdDE = 0;
 
-    //%
-    int getCEPin() {
-        return mbit_p12;
-    }
-    
-    //%
-    Buffer getBuffer() {
-        return bytearray;
+    //% 
+    uint8_t *getMyBufferData() {
+        return bytearray->data;
     }
     
     //%
@@ -141,7 +133,6 @@ namespace ssd1309 {
         }
     }
     
-
 
     //%
     void pixel(int x, int y, bool state) {

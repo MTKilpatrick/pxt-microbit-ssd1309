@@ -1,41 +1,68 @@
+writePixelAsm:
+    push {r4,lr}
+    cmp r0, #127        ;  if (x >127) or (x < 0), extit
+    bhs .wpreturn
+    lsrs r3, r1, #3     ; r3 = y >> 3
+    cmp r3, #7          ;   if r3 > 7, exit (y > 63) or (y<0)
+    bhs .wpreturn
+    mov r7, r2          ; save State
+    lsls r3, r3, #7     ; r3 = r3 << 7
+    movs r4, #7         ; r4 = 7
+    ands r1, r4         ; r1 = y & 7
+    adds r4, r3, r0     ; r4 = 128 * (y >>3) + x
+    movs r3, #1         ; r3 = 1
+    lsls r3, r1         ; r3 = 1 << (y & 7)
+    mov r9, r3          ; save r3
+    bl ssd1309::getMyBufferData ; r0 points to data
+    mov r3, r9          ; restore f3
+    movs r2, r7          ; restore r2
+    beq .wpfalse        ; if State false go to...
+    ldrb r1, [r0, r4]
+    orrs r1, r3
+    movs r1, #0xAA
+    strb r1, [r0, r4]
+    pop {r4,pc}
+.wpfalse:
+    ldrb r1, [r0, r4]
+    bics r1, r3
+    movs r1, #255
+    strb r1, [r0, r4]
+.wpreturn:
+    pop {r4,pc}
+
 sendSPIBufferAsm:
 
- 	; arguments are: r0 - buffer, r1 - data pin, r2 - clock pin
+ 	; arguments are: r0 - buffer, r1 - data pin, r2 - clock pin, r3 - chip select
     push {r4,r5,r6,r7,lr}
     
-    mov r6, r1 ; save datapin in r6
-    mov r7, r2 ; save clock pin in r7
-    mov r8, r3 ; save chip select in r8
 
-    mov r4, r0 ; save buff
-    mov r0, r4
-    bl BufferMethods::length
-    mov r5, r0          ; r5 contains buffer length
-    
-    mov r0, r4
-    bl BufferMethods::getBytes
-    mov r4, r0          ; r4 points to the data
-    
+    bl ssd1309::getMyBufferData
+    mov r4, r0
 
-    mov r0, r8  ; get CE pin
+;   manually define the buffer length
+    movs r5, #0x80
+    lsls r5, r5, #3    
+
+    movs r0, #112   ; DigitalPin P12 - CE
     bl pins::getPinAddress
     ldr r0, [r0, #8] ; get mbed DigitalOut from MicroBitPin
     ldr r0, [r0, #4] ; r1-mask for this pin
     mov r8, r0    ; save CE mask
 
     ; load data pin address
-    mov r0, r6
+    movs r0,  #115  ; DigitalPin P15 - MOSI
     bl pins::getPinAddress
     ldr r0, [r0, #8] ; get mbed DigitalOut from MicroBitPin
     ldr r6, [r0, #4] ; r1-mask for this pin    
 
     ; load clock pin address into r0 and get addrs/mask
-    mov r0, r7
+    movs r0, #113    ; DigitalPin P13 - CLK
     bl pins::getPinAddress
     ldr r0, [r0, #8] ; get mbed DigitalOut from MicroBitPin
     ldr r1, [r0, #4] ; r1-mask for this pin
     ldr r2, [r0, #16] ; r2-clraddr
     ldr r3, [r0, #12] ; r3-setaddr
+
 
     ; set CE low
     mov r0, r8
@@ -101,26 +128,21 @@ sendSPIByteAsm:
  	; arguments are: r0 - buffer, r1 - data pin, r2 - clock pin
     push {r4,r5,r6,r7,lr}
    
-    mov r5, r0  ; save the byte
-    mov r6, r1 ; save datapin in r6
-    mov r7, r2 ; save clock pin in r7
-    mov r8, r3 ; save chip select in r8
-
-    mov r0, r8  ; get CE pin
+    mov r5, r0
+    movs r0, #112   ; DigitalPin P12 - CE
     bl pins::getPinAddress
     ldr r0, [r0, #8] ; get mbed DigitalOut from MicroBitPin
     ldr r0, [r0, #4] ; r1-mask for this pin
     mov r8, r0    ; save CE mask
 
-
     ; load data pin address
-    mov r0, r6
+    movs r0,  #115  ; DigitalPin P15 - MOSI
     bl pins::getPinAddress
     ldr r0, [r0, #8] ; get mbed DigitalOut from MicroBitPin
     ldr r6, [r0, #4] ; r1-mask for this pin    
 
     ; load clock pin address into r0 and get addrs/mask
-    mov r0, r7
+    movs r0, #113    ; DigitalPin P13 - CLK
     bl pins::getPinAddress
     ldr r0, [r0, #8] ; get mbed DigitalOut from MicroBitPin
     ldr r1, [r0, #4] ; r1-mask for this pin

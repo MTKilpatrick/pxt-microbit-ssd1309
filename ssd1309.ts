@@ -31,7 +31,7 @@ namespace ssd1309 {
 
     // shim for mapping the assembler buffer code to the TS function
     //% shim=sendSPIBufferAsm
-    function sendSPIBuffer(buf: Buffer, pina: DigitalPin, pinb: DigitalPin, pinc: DigitalPin) {
+    function sendSPIBuffer() {
         return
     }
 
@@ -39,8 +39,13 @@ namespace ssd1309 {
     // I use this for sending the control bytes to configure the LCD display
     // and it works correctly when called from Typescript like this
     //% shim=sendSPIByteAsm
-    export function sendSPIByte(dat: number, pindata: DigitalPin, pinclk: DigitalPin, pince: DigitalPin) {
+    export function sendSPIByte(dat: number) {
         return
+    }
+
+    //% shim=writePixelAsm
+    export function writePixelAsm(x: number, y: number, state: boolean) {
+        
     }
 
     // Send the buffer to the display (get the buffer first from the C++ realm)
@@ -49,8 +54,9 @@ namespace ssd1309 {
     //% block="update LCD display"
     //% blocId=ssd1309_show
     export function show(): void {
-        sendSPIBuffer(getBuffer(), LCD_MOSI, LCD_CLK, LCD_CE)
+        sendSPIBuffer()
     }
+
 
     const FILL_X = hex`fffefcf8f0e0c08000`
     const FILL_B = hex`0103070f1f3f7fffff`
@@ -90,10 +96,6 @@ namespace ssd1309 {
         show()
     }
 
-    //% shim=ssd1309::getBuffer
-    function getBuffer(): Buffer {
-        return pins.createBuffer(1024)
-    }
 
     //% shim=ssd1309::initBuffer
     function initBuffer(): Buffer {
@@ -119,7 +121,7 @@ namespace ssd1309 {
 
     function cmdSPI(b: number): void {
         pins.digitalWritePin(LCD_DC, LCD_CMD)
-        sendSPIByte(b, LCD_MOSI, LCD_CLK, LCD_CE)
+        sendSPIByte(b)
         pins.digitalWritePin(LCD_DC, LCD_DAT)
     }
 
@@ -141,16 +143,12 @@ namespace ssd1309 {
         basic.pause(100)
         cmdSPI(0xAE)    // display off
         cmdSPI(0xA4)    // not entire display on
+        cmdSPI(0x81); cmdSPI(0x80) // contrast
+        cmdSPI(0xD5); cmdSPI(0x10) // contrast
         cmdSPI(0x20); cmdSPI(0x00) // horizontal mode
         cmdSPI(0x21); cmdSPI(0x00); cmdSPI(0x7f)  // column address
         cmdSPI(0x22); cmdSPI(0x00); cmdSPI(0x3f)  // page address
-        // following two commands rotate by 180!
-        cmdSPI(0xC8)    // scan direction C0/C8
-        cmdSPI(0xA1)    // segment remap no 
         cmdSPI(0xAF)    // display on
-
-
-//        sendCommands()
         setState(true)
         clear()
     }
