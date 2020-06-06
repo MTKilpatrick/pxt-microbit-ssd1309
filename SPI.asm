@@ -1,12 +1,68 @@
 ; routines for graphics and SPI
 
+; horizontal line plot
+hLineAsm:
+	push {r4,r5,r6,lr}
+	mov r4, r0				; r4 = r0
+	cmp r1, r0				
+	bls .hLine1
+	mov r4, r1				; if (r0 > r1) {r4 = r1, r1 = r0}
+	mov r1, r0
+.hLine1:
+	cmp r1, #0				; if (r1 < 0) return
+	bmi .hLinereturn	
+	movs r3, #127			; if (r1 > 127) r1 = 127;
+	cmp r1, r3
+	bls .hLine2
+	mov r1, r3
+.hLine2:
+	cmp r4, #0				; if (r4 < 0) r4 = 0;
+	bpl .hLine3
+	movs r4, #0	
+.hLine3:
+	lsrs r3, r2, #3			; r3 = r2 >> 3
+	cmp r3, #7				; if ((r2 < 0) || (r2 > 63)) return;
+	bhi .hLinereturn
+	lsls r3, r3, #7			; r3 = 128 * (r2>>3)
+	adds r5, r4, r3			; r5 = r4 + 128 * (r2>>3)	****
+	subs r1, r1, r4
+    adds r1, #1
+	movs r3, #7
+	ands r3, r2
+	movs r2, #1
+	lsls r2, r3				; r2 = 1 << (r2 & 7)	
+	bl ssd1309::getMyBufferData
+	mov r6,r0
+	bl ssd1309::getPlotState		; returns 0 or 1 ??
+	cmp r0, #1
+	bne .hLinefalse
+.hLinetrue:
+	ldrb r3, [r6, r5] 
+    orrs r3, r2
+    strb r3, [r6, r5]
+	adds r5, #1
+	subs r1, #1
+	bne .hLinetrue
+	b .hLinereturn
+.hLinefalse:
+	ldrb r3, [r6, r5] 
+    bics r3, r2
+    strb r3, [r6, r5]
+	adds r5, #1
+	subs r1, #1
+	bne .hLinefalse
+.hLinereturn:	
+	pop {r4,r5,r6,pc}
+
+; pixel plot
+
 writePixelAsm:
     push {r4,lr}
     cmp r0, #127        ;  if (x >127) or (x < 0), extit
-    bhs .wpreturn
+    bhi .wpreturn
     lsrs r4, r1, #3     ; r4 = y >> 3
     cmp r4, #7          ;   if r4 > 7, exit (y > 63) or (y<0)
-    bhs .wpreturn
+    bhi .wpreturn
     lsls r4, r4, #7     ; r4 = 128 * (y>>3)
     adds r4, r4, r0     ; r4 = 128 * (y >>3) + x
 

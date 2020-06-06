@@ -82,6 +82,11 @@ namespace ssd1309 {
     uint8_t *getMyBufferData() {
         return bytearray->data;
     }
+
+    //% 
+    bool getPlotState() {
+        return state;
+    }
     
     //%
     Buffer initBuffer() {
