@@ -2,32 +2,34 @@
 
 writePixelAsm:
     push {r4,lr}
-    mov r7, r2
     cmp r0, #127        ;  if (x >127) or (x < 0), extit
     bhs .wpreturn
-    lsrs r3, r1, #3     ; r3 = y >> 3
-    cmp r3, #7          ;   if r3 > 7, exit (y > 63) or (y<0)
+    lsrs r4, r1, #3     ; r4 = y >> 3
+    cmp r4, #7          ;   if r4 > 7, exit (y > 63) or (y<0)
     bhs .wpreturn
-    lsls r3, r3, #7     ; r3 = r3 << 7
-    movs r4, #7         ; r4 = 7
-    ands r1, r4         ; r1 = y & 7
-    adds r4, r3, r0     ; r4 = 128 * (y >>3) + x
-    movs r3, #1         ; r3 = 1
-    lsls r3, r1         ; r3 = 1 << (y & 7)
-    mov r9, r3          ; save r3
+    lsls r4, r4, #7     ; r4 = 128 * (y>>3)
+    adds r4, r4, r0     ; r4 = 128 * (y >>3) + x
+
+    movs r3, #7         ; r3 = 7
+    ands r3, r1         ; r1 = y & 7
+    movs r1, #1         ; r2 = 1
+    lsls r1, r3         ; r2 = 1 << (y & 7)
     bl ssd1309::getMyBufferData ; r0 points to data
-    mov r3, r9          ; restore f3
-    ldrb r1, [r0, r4]
-    mov r2, r7
+    ; the above affects r0,r3 but not r1, r2 or r4
+    ; r0 - buffer address
+    ; r1 - data mask
+    ; r2 - state
+    ; r4 - offset
+    ldrb r3, [r0, r4]
     cmp r2, #5
     beq .wpfalse
-    orrs r1, r3
-    strb r1, [r0, r4]
+    orrs r3, r1
+    strb r3, [r0, r4]
 .wpreturn:
     pop {r4, pc}
 .wpfalse:
-    bics r1, r3
-    strb r1, [r0, r4]
+    bics r3, r1
+    strb r3, [r0, r4]
     b .wpreturn
 
 
