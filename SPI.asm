@@ -112,12 +112,14 @@ sendSPIBufferAsm:
     str r1, [r3, #0]    ; clock -> high     ; C17
     bne .common                             ; C20
 .nextbyte:
-    adds r4, #1        ; r4++       C9
-    subs r5, #1         ; r5--       C10
-    beq .stop          ; if (r5=0) 
+    adds r4, #4         ; r4++       C9
+    subs r5, #4         ; r5--       C10
+    beq .stop           ; if (r5=0) 
 .start:                                     ; C0
     movs r7, #0x80      ; reset mask        ; C1
-    ldrb r0, [r4, #0]  ; r0 := *r4          ; C3
+    lsls r7, r7, #24
+    ldr r0, [r4, #0]    ; r0 := *r4          ; C3
+    rev r0, r0
     b .common    
 .stop:
     str r1, [r2, #0]    ; clock pin := lo
