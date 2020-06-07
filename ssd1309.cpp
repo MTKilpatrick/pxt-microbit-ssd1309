@@ -246,8 +246,8 @@ namespace ssd1309 {
             y = y1;
             y1 = y0;
             }
-        if (((x | y1) < 0) || (x > 127)) return;
         if (y < 0) y = 0;
+        if (((x | y1) < 0) || (x > 127)) return;
         if (y1 > 63) y1 = 63;
         uint8_t bitmask = 0xff << (y & 7);
         int r = x + 128 *(y >> 3);
@@ -284,9 +284,12 @@ namespace ssd1309 {
     void hLine(int x0, int x1, int y) {
         int x = x0;
         if (x0 > x1) { x = x1; x1 = x0; }
-        if (((x1 | y) < 0) || (y > 63)) return;
         if (x < 0) x = 0;
-        if (x1 > 127) x1 = 127;
+        if (((x1 | y) < 0) || (y > 63)) return;
+        if (x1 > 127) {
+            x1 = 127;
+            if (x > 127) return;
+        }
         uint8_t bitmask = 1 << (y & 7);
         int r = x + 128* (y >> 3);
         if (state) {

@@ -2,23 +2,25 @@
 
 ; horizontal line plot
 hLineAsm:
-	push {r4,r5,r6,lr}
+	push {r4,r5,lr}
 	mov r4, r0				; r4 = r0
-	cmp r1, r0				
-	bls .hLine1
+	cmp r0, r1				
+	bmi .hLine1
 	mov r4, r1				; if (r0 > r1) {r4 = r1, r1 = r0}
 	mov r1, r0
 .hLine1:
 	cmp r1, #0				; if (r1 < 0) return
 	bmi .hLinereturn	
+	cmp r4, #0				; if (r4 < 0) r4 = 0;
+	bpl .hLine2
+	movs r4, #0	
+.hLine2:
 	movs r3, #127			; if (r1 > 127) r1 = 127;
 	cmp r1, r3
-	bls .hLine2
+	bls .hLine3
 	mov r1, r3
-.hLine2:
-	cmp r4, #0				; if (r4 < 0) r4 = 0;
-	bpl .hLine3
-	movs r4, #0	
+    cmp r4, r3
+    bhi .hLinereturn
 .hLine3:
 	lsrs r3, r2, #3			; r3 = r2 >> 3
 	cmp r3, #7				; if ((r2 < 0) || (r2 > 63)) return;
@@ -26,33 +28,35 @@ hLineAsm:
 	lsls r3, r3, #7			; r3 = 128 * (r2>>3)
 	adds r5, r4, r3			; r5 = r4 + 128 * (r2>>3)	****
 	subs r1, r1, r4
-    adds r1, #1
-	movs r3, #7
+	movs r3, #7             ; set up the bit mask
 	ands r3, r2
 	movs r2, #1
 	lsls r2, r3				; r2 = 1 << (r2 & 7)	
 	bl ssd1309::getMyBufferData
-	mov r6,r0
+	adds r5, r5, r0     ; r6 is the start offset
 	bl ssd1309::getPlotState		; returns 0 or 1 ??
+	;r0 - plot state
+	;r1 - offset 
+	;r2 - bit mask
+	;r4 -
+	;r5 -  buffer start position (128*7%8) + lowest x
 	cmp r0, #1
 	bne .hLinefalse
 .hLinetrue:
-	ldrb r3, [r6, r5] 
+	ldrb r3, [r5, r1] 
     orrs r3, r2
-    strb r3, [r6, r5]
-	adds r5, #1
+    strb r3, [r5, r1]
 	subs r1, #1
-	bne .hLinetrue
-	b .hLinereturn
+	bpl .hLinetrue
+    b .hLinereturn
 .hLinefalse:
-	ldrb r3, [r6, r5] 
+	ldrb r3, [r5, r1] 
     bics r3, r2
-    strb r3, [r6, r5]
-	adds r5, #1
+    strb r3, [r5, r1]
 	subs r1, #1
-	bne .hLinefalse
+	bpl .hLinefalse
 .hLinereturn:	
-	pop {r4,r5,r6,pc}
+	pop {r4,r5,pc}
 
 ; pixel plot
 
