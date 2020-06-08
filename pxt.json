@@ -9,6 +9,7 @@
     "files": [
         "ssd1309.ts",
         "ssd1309.cpp",
+        "graphics1.asm",
         "SPI.asm",
         "README.md"
     ],
