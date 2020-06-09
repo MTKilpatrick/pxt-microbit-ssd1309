@@ -219,6 +219,10 @@ namespace ssd1309 {
     function pLine(x0: number, y0: number, x1: number, y1: number): void {
         return
     }
+    //% shim=pLineAsm
+    function pLineAsm(x0: number, y0: number, x1: number, y1: number): void {
+        return
+    }
     //% shim=ssd1309::pBox
     function pBox(x0: number, y0: number, x1: number, y1: number): void {
         return
@@ -249,8 +253,7 @@ namespace ssd1309 {
     export function plot2(plot: Plots, x0: number, y0: number, x1: number, y1: number, state: boolean): void {
         setState(state)
         switch (plot) {
-//            case 0: { pLine(x0, y0, x1, y1); break }
-            case 0: { hLineAsm(x0, x1, y0); break }
+            case 0: { pLineAsm(x0, y0, x1, y1); break }
             case 1: { pBox(x0, y0, x1, y1); break }
             case 2: {
                 hLineAsm(x0, x1, y0)
@@ -273,10 +276,10 @@ namespace ssd1309 {
             case 0: { pLine(x0, y0, x1, y1); break }
             case 1: { pBox(x0, y0, x1, y1); break }
             case 2: {
-                hLineAsm(x0, x1, y0)
-                hLineAsm(x0, x1, y1)
-                vLineAsm(x0, y0, y1)
-                vLineAsm(x1, y0, y1)
+                hLine(x0, x1, y0)
+                hLine(x0, x1, y1)
+                vLine(x0, y0, y1)
+                vLine(x1, y0, y1)
                 break
             }
             default: pLine(x0, y0, x1, y1)
