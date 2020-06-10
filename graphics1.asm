@@ -101,28 +101,6 @@ vLineAsm:
 .vLineReturn:
 	pop {r4, r5, r6, r7, pc}
 
-writeRegs:
-    push {r0,r1,r2,r3,lr}
-    bl ssd1309::getMyBufferData
-    mov r3, r5
-    strb r3, [r0, #0]
-    mov r3, r7
-    strb r3, [r0, #1]
-    mov r3, r8
-    strb r3, [r0, #2]
-    mov r3, r9
-    strb r3, [r0, #3]
-    mov r3, r10
-    strb r3, [r0, #4]
-    mov r3, r11
-    strb r3, [r0, #5]
-    movs r3, #0xAA
-    strb r3, [r0, #7]
-    movs r3, #0x55
-    strb r3, [r0, #8]
-    pop {r0,r1,r2,r3,pc}
-
-
 pLineAsm:
     cmp r0, r2
     beq .vLineStart
@@ -196,13 +174,10 @@ pLineAsm:
 .pLineDyGtDx:
     lsls r4, r4, #1     ; r5 = a  = dx << 1
     mov r11, r4     ; r11 = a
-    subs r4, r5
-    mov r7, r4     ; r7 = p
-    subs r4, r5
-    mov r9, r4      ; r9 = b
-    mov r5, r1
-    adds r5, r3
-    lsrs r5, r5, #1     ; r5 = mid
+    subs r7, r4, r5     ; r7 = p = a - dy
+    subs r6, r7, r5     ; r6 = b = p - dy
+    adds r5, r3, r1
+    lsrs r5, r5, #1     ; r5 = mid = (y0 + y1) >> 1
     cmp r1, r3
     bmi .pLineNoSwap1D
     mov r4, r0
@@ -211,8 +186,8 @@ pLineAsm:
     mov r4, r1
     mov r1, r3      ; r1 = y
     mov r3, r4      ; r3 = y1
-    ; r0 = x, r1 = y, r2 = x1, r3 = y1, r5 = mid, r7 = p, r8 = xc, r9 = b,  r11 = a
-.pLineNoSwap1D:      ; r0 = x, r1 = y, r2 = x1, r3 = y1, r5 = mid, r7 = p, r8 = xc, r9 = b, r11 = a
+    ; r0 = x, r1 = y, r2 = x1, r3 = y1, r5 = mid, r6 = b, r7 = p, r8 = xc,  r11 = a
+.pLineNoSwap1D:      ; r0 = x, r1 = y, r2 = x1, r3 = y1, r5 = mid, r6 = b, r7 = p, r8 = xc,  r11 = a
     movs r4, #1
     cmp r2, r0
     bpl .pLine3D
@@ -220,8 +195,7 @@ pLineAsm:
 .pLine3D:
     mov r8, r4
     mov r2, r3      ; discard x1 and keep y1
-;  r0 = x, r1 = y, r2 = y1, r5 = mid, r7 = p, r8 = yc, r9 = b, r10 = state, r11 = a
-
+;  r0 = x, r1 = y, r2 = y1, r5 = mid, r6 = b, r7 = p, r8 = yc, r10 = state, r11 = a
 .pLineP1StartD:
     push {r0,r1,r2}
     mov r2, r10 
@@ -230,17 +204,18 @@ pLineAsm:
     cmp r1, r2          
     bpl .pLineReturn
     cmp r7, #0
-    bmi .pLineP1IfD
-    bne .pLineP1ElseD
+    beq .pLineP12D
+    bpl .pLineP1ElseD
+.pLineP1IfD:
+    add r7, r11
+    adds r1, #1
+    b .pLineP1StartD
+.pLineP12D:
     cmp r1, r5
     bpl .pLineP1IfD
 .pLineP1ElseD:
-    add r7, r9
+    add r7, r6
     add r0, r8
-    adds r1, #1
-    b .pLineP1StartD
-.pLineP1IfD:
-    add r7, r11           ; if (p < 0) || ((p  == 0) && x >=mid),  p = p + a
     adds r1, #1
     b .pLineP1StartD
 
