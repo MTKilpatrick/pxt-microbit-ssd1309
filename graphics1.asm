@@ -8,13 +8,13 @@ pBoxAsm:
     bmi .pBox1
     mov r4, r0
     mov r0, r2
-    mov r2, r0
+    mov r2, r4
 .pBox1:
     cmp r1, r3
     bmi .pBox2
     mov r4, r1
     mov r1, r3
-    mov r3, r1
+    mov r3, r4
 .pBox2:
     mov r4, r2
     orrs r4, r3
@@ -63,7 +63,6 @@ pBoxAsm:
     ; r8 - state
 	subs r1, r1, r5 		; r1 = j; if (y>>3) == (y1>>3)
 	bne .pBoxElse
-.pBoxDoOneRowOnly:
     ; just one row of bits...
 	movs r4, #7
 	ands r4, r2
@@ -78,6 +77,7 @@ pBoxAsm:
     subs r1, #1
     beq .pBoxLoopOut
     mov r4, r8
+    
     movs r6, #0x00
     subs r6, r6, r4
     mov r4, r7
@@ -88,12 +88,12 @@ pBoxAsm:
     b .pBoxLoop2
 .pBoxLoopOut:
 	movs r3, #7
-	ands r2, r3         ; y1 & 7
-	subs r3, r3, r2
-    movs r6, #0xff
-    lsls r6, r6, r3
+	ands r3, r2         ; y1 & 7
+	movs r6, #2
+	lsls r6, r3	
+	subs r6, #1			; bitmask = (2 << (y1 & 7)) - 1;
 .pBoxEndStore:
-;    bl pBoxRowFill
+    bl pBoxRowFill
 .pBoxReturn:
     pop {r4,r5,r6,r7,pc}
 
@@ -392,8 +392,8 @@ hLineAsm:
 	;r2 - bit mask
     ;r3 -
 	;r4 -  buffer  position (128*7%8) + lowest x
-	cmp r0, #1
-	bne .hLinefalse
+	cmp r0, #0
+	beq .hLinefalse
 .hLinetrue:
 	ldrb r3, [r4, r1] 
     orrs r3, r2
@@ -426,6 +426,8 @@ writePixelAsm:
     ands r3, r1         ; r1 = y & 7
     movs r1, #1         ; r2 = 1
     lsls r1, r3         ; r2 = 1 << (y & 7)
+    bl ssd1309::getPlotState
+    mov r2, r0
     bl ssd1309::getMyBufferData ; r0 points to data
     ; the above affects r0,r3 but not r1, r2 or r4
     ; r0 - buffer address

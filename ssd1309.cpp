@@ -89,6 +89,15 @@ namespace ssd1309 {
     }
     
     //%
+    void setPlotOn() {
+        state = true;
+    }
+    //%
+    void setPlotOff() {
+        state = false;
+    }
+
+    //%
     Buffer initBuffer() {
         bytearray = mkBuffer(NULL,1024);
         return bytearray;
@@ -126,10 +135,6 @@ namespace ssd1309 {
         bytearray->data[offset + 6] = 0;
     }
 
-    //%
-    void setState(bool s) {
-        state = s;
-    }
 
     //%
     void clear() {

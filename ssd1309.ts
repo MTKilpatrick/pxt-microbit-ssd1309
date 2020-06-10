@@ -144,7 +144,7 @@ namespace ssd1309 {
         cmdSPI(0x21); cmdSPI(0x00); cmdSPI(0x7f)  // column address
         cmdSPI(0x22); cmdSPI(0x00); cmdSPI(0x3f)  // page address
         cmdSPI(0xAF)    // display on
-        setState(true)
+        setPlotOn()
         clear()
     }
 
@@ -172,11 +172,10 @@ namespace ssd1309 {
     }
 
     //% blockId=ssd1309_pixel
-    //% block="pixel at x %x y %y %state"
-    //% state.shadow="toggleOnOff" state.defl=true
+    //% block="pixel at x %x y %y"
     //% inlineInputMode=inline
     //% shim=writePixelAsm
-    export function pixel(x: number, y: number, state: boolean): void {
+    export function pixel(x: number, y: number): void {
         return
     }
 
@@ -210,29 +209,21 @@ namespace ssd1309 {
     export function displayRow(row: number): void {
     }
 
-    //% shim=ssd1309::setState
-    export function setState(s: boolean) {
+    //% shim=ssd1309::setPlotOn
+    export function setPlotOn() {
+        return
+    }
+    //% shim=ssd1309::setPlotOff
+    export function setPlotOff() {
         return
     }
 
-    //% shim=ssd1309::pLine
-    function pLine(x0: number, y0: number, x1: number, y1: number): void {
-        return
-    }
     //% shim=pLineAsm
     function pLineAsm(x0: number, y0: number, x1: number, y1: number): void {
         return
     }
-    //% shim=ssd1309::pBox
-    function pBox(x0: number, y0: number, x1: number, y1: number): void {
-        return
-    }
     //% shim=pBoxAsm
     function pBoxAsm(x0: number, y0: number, x1: number, y1: number): void {
-        return
-    }
-    //% shim=ssd1309::vLine
-    function vLine(x: number, y0: number, y1: number): void {
         return
     }
     //% shim=vLineAsm
@@ -245,20 +236,13 @@ namespace ssd1309 {
         return
     }
 
-    //% shim=ssd1309::hLine
-    function hLine(x0: number, x1: number, y: number): void {
-        return
-    }
-
-    //% blockId=ssd1309_plot2
-    //% block="draw %plot=plot_conv from x %x0 y %y0 to x %x1 y %y1 $state"
-    //% state.shadow="toggleOnOff" state.defl=true
+    //% blockId=ssd1309_plot
+    //% block="draw %plot=plot_conv from x %x0 y %y0 to x %x1 y %y1"
     //% inlineInputMode=inline
-    export function plot2(plot: Plots, x0: number, y0: number, x1: number, y1: number, state: boolean): void {
-        setState(state)
+    export function plot(plot: Plots, x0: number, y0: number, x1: number, y1: number): void {
         switch (plot) {
             case 0: { pLineAsm(x0, y0, x1, y1); break }
-            case 1: { pBox(x0, y0, x1, y1); break }
+            case 1: { pBoxAsm(x0, y0, x1, y1); break }
             case 2: {
                 hLineAsm(x0, x1, y0)
                 hLineAsm(x0, x1, y1)
@@ -266,27 +250,7 @@ namespace ssd1309 {
                 vLineAsm(x1, y0, y1)
                 break
             }
-            default: pLine(x0, y0, x1, y1)
-        }
-    }
-
-    //% blockId=ssd1309_plot
-    //% block="draw %plot=plot_conv from x %x0 y %y0 to x %x1 y %y1 $state"
-    //% state.shadow="toggleOnOff" state.defl=true
-    //% inlineInputMode=inline
-    export function plot(plot: Plots, x0: number, y0: number, x1: number, y1: number, state: boolean): void {
-        setState(state)
-        switch (plot) {
-            case 0: { pLine(x0, y0, x1, y1); break }
-            case 1: { pBox(x0, y0, x1, y1); break }
-            case 2: {
-                hLine(x0, x1, y0)
-                hLine(x0, x1, y1)
-                vLine(x0, y0, y1)
-                vLine(x1, y0, y1)
-                break
-            }
-            default: pLine(x0, y0, x1, y1)
+            default: pLineAsm(x0, y0, x1, y1)
         }
     }
 
