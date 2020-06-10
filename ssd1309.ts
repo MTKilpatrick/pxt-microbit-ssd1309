@@ -227,6 +227,10 @@ namespace ssd1309 {
     function pBox(x0: number, y0: number, x1: number, y1: number): void {
         return
     }
+    //% shim=pBoxAsm
+    function pBoxAsm(x0: number, y0: number, x1: number, y1: number): void {
+        return
+    }
     //% shim=ssd1309::vLine
     function vLine(x: number, y0: number, y1: number): void {
         return
