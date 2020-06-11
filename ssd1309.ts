@@ -138,7 +138,7 @@ namespace ssd1309 {
         basic.pause(100)
         cmdSPI(0xAE)    // display off
         cmdSPI(0xA4)    // not entire display on
-        cmdSPI(0x81); cmdSPI(0x80) // contrast
+        cmdSPI(0x81); cmdSPI(0x20) // contrast
         cmdSPI(0xD5); cmdSPI(0x10) // contrast
         cmdSPI(0x20); cmdSPI(0x00) // horizontal mode
         cmdSPI(0x21); cmdSPI(0x00); cmdSPI(0x7f)  // column address

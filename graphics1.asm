@@ -1,7 +1,6 @@
 ; routines for graphics
 
 
-
 pBoxAsm:
 	push {r4,r5,r6,r7,lr}
     cmp r0, r2
@@ -18,79 +17,73 @@ pBoxAsm:
 .pBox2:
     mov r4, r2
     orrs r4, r3
-    bmi .pBoxReturn
+    bmi .pBoxReturn     ; if x1 or y1 are negative, exit
+    cmp r2, #128
+    bmi .pBox5
+    movs r2, #127       ; if x1 > 127, x1 = 127
+.pBox5:
     cmp r1, #0
     bpl .pBox3
-    movs r1, #0
+    movs r1, #0         ; if y0 < 0, y0 = 0
 .pBox3:
     cmp r3, #63
     bls .pBox4
-    movs r3, #63
+    movs r3, #63        ; if y1 > 63, y1 = 63
 .pBox4:
-    cmp r2, #127
-    bls .pBox5
-    movs r2, #127
-.pBox5:
     cmp r0, #0
     bpl .pBox6
-    movs r0, #0
+    movs r0, #0         ; if x0 < 0, x0 = 0
 .pBox6:
 	movs r4, #7
-	ands r4, r1				; r3 = (y & 7)
+	ands r4, r1				; r4 = (y0 & 7)
 	movs r6, #0xff
-	lsls r6, r1				; r6 = 0xff << (y0 & 7) bitmask
-	lsrs r5, r1, #3			; r7 = (y0 >> 3)
+	lsls r6, r4				; r6 = 0xff << (y0 & 7) bitmask
+	lsrs r5, r1, #3			; r5 = (y0 >> 3)
 	cmp r5, #7				; if (y0 > 63) return
 	bhi .pBoxReturn
 	lsls r4, r5, #7			; r4 = 128 * (y0>>3)
-	adds r4, r4, r0			; r4 = x + 128 * (y0>>3)
-    subs r7, r2, r0
-
-    mov r2, r3              ; move y1
-	bl ssd1309::getPlotState
-    mov r8, r0
+	adds r4, r4, r0			; r4 = x0 + 128 * (y0>>3)
+    subs r7, r2, r0         ; r7 = x1 - x0
+    lsrs r1, r3, #3         ; r1 = y1 >>3
+	movs r2, #7
+	ands r2, r3             ; r2 = y1 & 7
 	bl ssd1309::getMyBufferData
-	adds r0, r4, r0
-    lsrs r1, r2, #3
-    ; r0 - start offset
-    ; r1 - (y1 >>3)
-    ; r2 - y1
-    ; r3 - 
-    ; r4 -  
-    ; r5 - (y0 >>3)
+	adds r4, r4, r0
+	bl ssd1309::getPlotState
+
+    
+	subs r1, r1, r5 		; r1 = j = (y1>>3) - (y0>>3)
+	bne .pBoxElse
+    ; r0 - state
+    ; r1 - (y1 >>3) - (y0 >>3) 
+    ; r2 - y1 & 7
+    ; r3 - empty
+    ; r4 - start offset
+    ; r5 - 
     ; r6 - bit mask
     ; r7 - x1 - x0
-    ; r8 - state
-	subs r1, r1, r5 		; r1 = j; if (y>>3) == (y1>>3)
-	bne .pBoxElse
     ; just one row of bits...
-	movs r4, #7
-	ands r4, r2
 	movs r3, #0xfe
-	lsls r3, r4			; r3 = 0xfe << (y1 & 7)
-	eors r6, r3				; bitmask r6 = r6 EOR r3
+	lsls r3, r2			; r3 = 0xfe << (y1 & 7)
+	eors r6, r3			; bitmask r6 = r6 EOR r3
     b .pBoxEndStore         ; do the row fill same as last row
 .pBoxElse:
     bl pBoxRowFill
 .pBoxLoop2:
-    adds r0, #128
+    adds r4, #128
     subs r1, #1
     beq .pBoxLoopOut
-    mov r4, r8
-    
-    movs r6, #0x00
-    subs r6, r6, r4
-    mov r4, r7
+    movs r3, #0x00
+    subs r3, r3, r0
+    mov r5, r7
 .pBoxLoop1:
-    strb r6, [r0, r4]
-    subs r4, #1
+    strb r3, [r4, r5]
+    subs r5, #1
     bpl .pBoxLoop1
     b .pBoxLoop2
 .pBoxLoopOut:
-	movs r3, #7
-	ands r3, r2         ; y1 & 7
 	movs r6, #2
-	lsls r6, r3	
+	lsls r6, r2	
 	subs r6, #1			; bitmask = (2 << (y1 & 7)) - 1;
 .pBoxEndStore:
     bl pBoxRowFill
@@ -98,62 +91,56 @@ pBoxAsm:
     pop {r4,r5,r6,r7,pc}
 
 pBoxRowFill:
-    mov r4, r8
-    cmp r4, #1
-    mov r4, r7
+    mov r5, r7
+    cmp r0, #1
     bne .pBoxRFLF
 .pBoxRFLT:
-	ldrb r3, [r0, r4]
+	ldrb r3, [r4, r5]
 	orrs r3, r6
-	strb r3, [r0, r4]
-    subs r4, #1
+	strb r3, [r4, r5]
+    subs r5, #1
     bpl .pBoxRFLT
 	mov pc, lr
 .pBoxRFLF:
-	ldrb r3, [r0, r4]
+	ldrb r3, [r4, r5]
 	bics r3, r6
-	strb r3, [r0, r4]
-   subs r4, #1
+	strb r3, [r4, r5]
+    subs r5, #1
     bpl .pBoxRFLF
     mov pc, lr
 
 
+
+.vLineNeg:
+	movs r1, #0		; if y0 < 0, y0 = 0
+	cmp r2, #0		; if y1 < 0, exit
+	bpl .vLine2
+	b .vLineReturn	
 .vLineStart:
     mov r2, r3
-
 ; vertical line plot
 ; r0 = x
 ; r1 = y0
 ; r2 = y1
-
 vLineAsm:
-	push {r4,r5,r6,lr}	
-	cmp r0, #0				; if (x < 0) return
-	bmi .vLineReturn
-    cmp r0, #127
-    bhi .vLineReturn
+	push {r4,r5,r6,lr}
+    lsrs r3, r0, #7
+    bne .vLineReturn        ; if x out of range, exit
 	cmp r1, r2				
 	bmi .vLine1
 	mov r3, r2				; if (y0 > y1) {y = y1, y1 = y0}
 	mov r2, r1
     mov r1, r3
-; r0 = x
-; r2 = y1 (highest y)
-; r4 = y (lowest y)	
 .vLine1:
-	cmp r2, #0				; if (y1 < 0) return
-	bmi .vLineReturn	
-	cmp r1, #0				; if (y < 0) y = 0;
-	bpl .vLine2
-	movs r1, #0				
+	cmp r1, #0
+	bmi .vLineNeg
 .vLine2:
+	lsrs r3, r2, #6
+	bne .vLine3
 	movs r3, #63			; if (y1 > 63) y1 = 63;
-	cmp r2, r3
-	bls .vLine3
-	mov r2, r3
 .vLine3:
-	lsrs r5, r1, #3			; r7 = (y >> 3)
-	cmp r5, #7				; if (y > 63) return
+	lsrs r5, r1, #3			; r5 = (y0 >> 3)
+	cmp r5, #7				; if (y0 > 63) return
 	bhi .vLineReturn
 	lsls r3, r5, #7			; r3 = 128 * (y>>3)
 	adds r4, r3, r0			; r4 = x + 128 * (y>>3)
@@ -162,36 +149,33 @@ vLineAsm:
 	ands r3, r1				; r3 = (y & 7)
 	movs r6, #0xff
 	lsls r6, r3				; r6 = 0xff << (y & 7) bitmask
-    ; r0 -
-    ; r1 - y
+	lsrs r1, r2, #3			; r1 = (y1 >> 3)
+	bl ssd1309::getMyBufferData
+	adds r4, r4, r0
+	bl ssd1309::getPlotState
+	subs r1, r1, r5			; r1 = j
+	bne .vLineElse          ; if more than one line got to Else
+    ; r0 - state
+    ; r1 - y1 >> 3 - y >>3
     ; r2 - y1
     ; r3 -
     ; r4 -  start offset
-    ; r5 - (y >>3)
+    ; r5 - 
     ; r6 - bit mask
 	
-	bl ssd1309::getPlotState
-    mov r8, r0
-	bl ssd1309::getMyBufferData
-	adds r4, r4, r0
-	lsrs r1, r2, #3			; r1 = (y1 >> 3)
-	cmp r1, r5 				; if (y>>3) == (y1>>3)
-	bne .vLineElse
+	movs r5, #7
+	ands r5, r2
 	movs r3, #0xfe
-	movs r0, #7
-	ands r0, r2
-	lsls r3, r0			; r3 = 0xfe << (y1 & 7)
+	lsls r3, r5			; r3 = 0xfe << (y1 & 7)
 	eors r6, r3				; bitmask r6 = r6 EOR r3
     b .vLineEndStore
 .vLineElse:
-	subs r1, r1, r5			; r1 = j
 	ldrb r3, [r4, #0]
-    mov r0, r8
 	cmp r0, #1
-	bne .vLineFalse2
-	movs r5, #0xff
+	bne .vLineFalse2    
 	orrs r3, r6
 	strb r3, [r4, #0]
+	movs r5, #0xff
 	b .vLine4
 .vLineFalse2:
 	movs r5, #0
@@ -199,9 +183,10 @@ vLineAsm:
 	strb r3, [r4, #0]
 .vLine4:
 	adds r4, #128
-	cmp r1, #1
-	beq .vLineLoopOut
+;	cmp r1, #1
+;	beq .vLineLoopOut
 	subs r1, #1
+    beq .vLineLoopOut
 	strb r5, [r4, #0]
 	b .vLine4	
 .vLineLoopOut:
@@ -212,7 +197,6 @@ vLineAsm:
 	subs r6, #1			; bitmask = (2 << (y1 & 7)) - 1;
 .vLineEndStore:
 	ldrb r3, [r4, #0]
-    mov r0, r8
 	cmp r0, #1
 	bne .vLineFalse3
 	orrs r3, r6
@@ -344,39 +328,42 @@ pLineAsm:
 
 
 
+.hLineNeg:
+    movs r0, #0				; if (r0 < 0) r0 = 0
+    cmp r1, #0				; if (r1 < 0) return
+    bmi .hLineReturn
+    cmp r1, #128
+    bmi .hLineC
+.hLineNeg2:
+    movs r1, #127		        ; if (r1 > 127) r1 = 127;
+    cmp r0, #128
+    bmi .hLineC
+    b .hLineReturn
 
 .hLineStart:
     mov r1, r2
     mov r2, r3
-
 ; horizontal line plot
 ; r0 - x0
 ; r1 - x1
 ; r2 - y
-
 hLineAsm:
     push {r4,lr}
     cmp r0, r1
-    bmi .hLineA
+    bmi .hLineA1
     mov r3, r0				; if (r0 > r1) {r4 = r1, r1 = r0}
     mov r0, r1
     mov r1, r3
-.hLineA:
-    cmp r1, #0				; if (r1 < 0) return
-    bmi .hLineReturn
-    cmp r0, #0
-    bpl .hLineB
-    movs r0, #0				; if (r0 < 0) r0 = 0
-.hLineB:
-    cmp r1, #127
-    bls .hLineC
-    movs r1, #127		        ; if (r1 > 127) r1 = 127;
-    cmp r0, #127
-    bhi .hLineReturn		    ; if (r0 > 127) return;
+.hLineA1:
+    cmp r0, #0              ; if r0 < 0
+    bmi .hLineNeg
+.hLineB1:
+    cmp r1, #128
+    bpl .hLineNeg2
 .hLineC:
     lsrs r3, r2, #3
     cmp r3, #7
-    bhi .hLineReturn
+    bhi .hLineReturn        ; if y out of range, exit
     lsls r3, r3, #7
 	subs r1, r1, r0         ; r1 = dx
 	adds r4, r0, r3			; r4 = r0 + 128 * (r2>>3)	****
@@ -409,39 +396,34 @@ hLineAsm:
 	bpl .hLinefalse
 .hLineReturn:	
 	pop {r4,pc}
+    
 
 ; pixel plot
 
 writePixelAsm:
-    push {r4,lr}
+    push {lr}
     cmp r0, #127        ;  if (x >127) or (x < 0), extit
-    bhi .wpreturn
-    lsrs r4, r1, #3     ; r4 = y >> 3
-    cmp r4, #7          ;   if r4 > 7, exit (y > 63) or (y<0)
-    bhi .wpreturn
-    lsls r4, r4, #7     ; r4 = 128 * (y>>3)
-    adds r4, r4, r0     ; r4 = 128 * (y >>3) + x
-
-    movs r3, #7         ; r3 = 7
-    ands r3, r1         ; r1 = y & 7
-    movs r1, #1         ; r2 = 1
-    lsls r1, r3         ; r2 = 1 << (y & 7)
-    bl ssd1309::getPlotState
-    mov r2, r0
+    bhi .wpreturn2
+    lsrs r2, r1, #3     ; r2 = y >> 3
+    cmp r2, #7          ;   if r2 > 7, exit (y > 63) or (y<0)
+    bhi .wpreturn2
+    lsls r2, r2, #7     ; r2 = 128 * (y>>3)
+    adds r2, r2, r0     ; r2 = 128 * (y >>3) + x
+    movs r3, #7
+    ands r1, r3
     bl ssd1309::getMyBufferData ; r0 points to data
-    ; the above affects r0,r3 but not r1, r2 or r4
-    ; r0 - buffer address
-    ; r1 - data mask
-    ; r2 - state
-    ; r4 - offset
-    ldrb r3, [r0, r4]
-    cmp r2, #5
-    beq .wpfalse
-    orrs r3, r1
-    strb r3, [r0, r4]
-.wpreturn:
-    pop {r4, pc}
-.wpfalse:
-    bics r3, r1
-    strb r3, [r0, r4]
-    b .wpreturn
+    adds r2, r2, r0
+    bl ssd1309::getPlotState
+    movs r3, #1         ; r2 = 1
+    lsls r3, r1         ; r3 = 1 << (y & 7)
+    lsls r0, r1
+    ; r0 - OR mask
+    ; r1 - y & 7
+    ; r2 - address
+    ; r3 - BIC mask
+    ldrb r1, [r2, #0]
+    bics r1, r3
+    orrs r1, r0
+    strb r1, [r2, #0]
+.wpreturn2:
+    pop {pc}
