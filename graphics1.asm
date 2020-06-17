@@ -49,9 +49,7 @@ pBoxAsm:
 	ands r2, r3             ; r2 = y1 & 7
 	bl ssd1309::getMyBufferData
 	adds r4, r4, r0
-	bl ssd1309::getPlotState
-
-    
+	bl ssd1309::getPlotState    
 	subs r1, r1, r5 		; r1 = j = (y1>>3) - (y0>>3)
 	bne .pBoxElse
     ; r0 - state
@@ -208,6 +206,7 @@ vLineAsm:
 .vLineReturn:
 	pop {r4, r5, r6, pc}
 
+
 pLineAsm:
     cmp r0, r2
     beq .vLineStart
@@ -215,23 +214,25 @@ pLineAsm:
     beq .hLineStart
     push {r0,r3,r4,r5,r6,r7,lr}
     bl ssd1309::getPlotState
-    mov r10, r0
+    mov r12, r0
+    bl ssd1309::getMyBufferData
+    mov r9, r0
     pop {r0,r3}
-    subs r4, r0, r2
+    subs r6, r0, r2
     bpl .pLine1
-    subs r4, r2, r0
+    subs r6, r2, r0
 .pLine1:
     subs r5, r1, r3
     bpl .pLine2
     subs r5, r3, r1
 .pLine2:            ; r4 = abs(dx), r5 = abs(dy)
-    cmp r5, r4  
+    cmp r5, r6  
     bhi .pLineDyGtDx
 .pLineDxGtDy:
     lsls r5, r5, #1     ; r5 = a
-    mov r11, r5     ; r11 = a
-    subs r7, r5, r4       ;   r7 = p = a - dx
-    subs r6, r7, r4         ; r6 = b = p - dx
+    mov r10, r5     ; r10 = a
+    subs r7, r5, r6       ;   r7 = p = a - dx
+    subs r6, r7, r6         ; r6 = b = p - dx
     adds r5, r2, r0
     lsrs r5, r5, #1     ; r5 = mid
     cmp r0, r2
@@ -242,27 +243,24 @@ pLineAsm:
     mov r8, r1
     mov r1, r3
     mov r3, r8
-.pLineNoSwap1:      ; r0 = x, r1 = y, r2 = x1, r3 = y1, r5 = mid, r7 = p, r6 = b,  r11 = a
+.pLineNoSwap1:      ; r0 = x, r1 = y, r2 = x1, r3 = y1, r5 = mid, r6 = b,  r7 = p, r9 = buffer, r10 = a, r12 = state
     movs r4, #1
     cmp r3, r1
     bpl .pLine3
     subs r4, #2
 .pLine3:
     mov r8, r4
-;  r0 = x, r1 = y, r2 = x1, r5 = mid, r7 = p, r8 = yc, r6 = b, r10 = state, r11 = a
+;  r0 = x, r1 = y, r2 = x1, r5 = mid, r6 = b, r7 = p, r8 = yc,  r9 = buffer, r10 = a, r12 = state
 .pLineP1Start:
-    push {r0,r1,r2}
-    mov r2, r10 
-;  r0 = x, r1 = y, r2 = x1, r5 = mid, r7 = p, r8 = yc, r6 = b, r10 = state, r11 = a
-    bl writePixelAsm        ; here
-    pop {r0,r1,r2}
+;  r0 = x, r1 = y, r2 = x1, r5 = mid, r6 = b, r7 = p, r8 = yc,  r9 = buffer, r10 = a, r12 = state
+    bl writePixelQAsm        ; here
     cmp r0, r2          
     bpl .pLineReturn
     cmp r7, #0
     beq .pLineP12
     bpl .pLineP1Else
 .pLineP1If:
-    add r7, r11           ; if (p < 0) || ((p  == 0) && x >=mid),  p = p + a
+    add r7, r10           ; if (p < 0) || ((p  == 0) && x >=mid),  p = p + a
     adds r0, #1
     b .pLineP1Start
  .pLineP12:
@@ -274,13 +272,13 @@ pLineAsm:
     adds r0, #1
     b .pLineP1Start
 
-.pLineReturn:    
+.pLineReturn:
     pop  {r4,r5,r6,r7,pc}
 
 
 .pLineDyGtDx:
     lsls r4, r4, #1     ; r5 = a  = dx << 1
-    mov r11, r4     ; r11 = a
+    mov r10, r4     ; r10 = a
     subs r7, r4, r5     ; r7 = p = a - dy
     subs r6, r7, r5     ; r6 = b = p - dy
     adds r5, r3, r1
@@ -293,8 +291,9 @@ pLineAsm:
     mov r4, r1
     mov r1, r3      ; r1 = y
     mov r3, r4      ; r3 = y1
-    ; r0 = x, r1 = y, r2 = x1, r3 = y1, r5 = mid, r6 = b, r7 = p, r8 = xc,  r11 = a
-.pLineNoSwap1D:      ; r0 = x, r1 = y, r2 = x1, r3 = y1, r5 = mid, r6 = b, r7 = p, r8 = xc,  r11 = a
+    ; r0 = x, r1 = y, r2 = x1, r3 = y1, r5 = mid, r6 = b, r7 = p, r8 = xc, r9 = buffer, r12 = state, r10 = a
+.pLineNoSwap1D:     
+    ; r0 = x, r1 = y, r2 = x1, r3 = y1, r5 = mid, r6 = b, r7 = p, r8 = xc, r9 = buffer, r12 = state, r10 = a
     movs r4, #1
     cmp r2, r0
     bpl .pLine3D
@@ -302,19 +301,16 @@ pLineAsm:
 .pLine3D:
     mov r8, r4
     mov r2, r3      ; discard x1 and keep y1
-;  r0 = x, r1 = y, r2 = y1, r5 = mid, r6 = b, r7 = p, r8 = yc, r10 = state, r11 = a
+    ; r0 = x, r1 = y, r2 = y1, r5 = mid, r6 = b, r7 = p, r8 = xc, r9 = buffer, r12 = state, r10 = a
 .pLineP1StartD:
-    push {r0,r1,r2}
-    mov r2, r10 
-    bl writePixelAsm        ; here
-    pop {r0,r1,r2}
+    bl writePixelQAsm        ; here
     cmp r1, r2          
     bpl .pLineReturn
     cmp r7, #0
     beq .pLineP12D
     bpl .pLineP1ElseD
 .pLineP1IfD:
-    add r7, r11
+    add r7, r10
     adds r1, #1
     b .pLineP1StartD
 .pLineP12D:
@@ -396,7 +392,38 @@ hLineAsm:
 	bpl .hLinefalse
 .hLineReturn:	
 	pop {r4,pc}
-    
+
+writePixelQAsm:
+; this routine doesn't load the plotState or the base buffer address
+; r0 - x
+; r1 - y
+; r9 - buffer base
+; r10 - plot plotState
+    push {r1,r2,lr}
+    cmp r0, #127        ;  if (x >127) or (x < 0), extit
+    bhi .wpreturn4
+    lsrs r2, r1, #3     ; r2 = y >> 3
+    cmp r2, #7          ;   if r2 > 7, exit (y > 63) or (y<0)
+    bhi .wpreturn4
+    lsls r2, r2, #7     ; r2 = 128 * (y>>3)
+    add r2, r9
+    movs r4, #7
+    ands r1, r4         ; r1 = y & 7
+    movs r3, #1         
+    lsls r3, r1         ; r3 = 1 << (y & 7)
+    ldrb r4, [r2, r0]
+    bics r4, r3
+    mov r3, r12
+    lsls r3, r1         ; r3 = state << (y & 7)
+    orrs r4, r3
+    strb r4, [r2, r0]    
+.wpreturn4:
+    pop {r1,r2,pc}
+; r0 - preserved
+; r1 - corrupted
+; r2 - corrupted
+; r3 - corrupted
+; r4 - corrupted
 
 ; pixel plot
 
