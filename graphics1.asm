@@ -4,12 +4,12 @@
 pBoxAsm:
   push {r4,r5,r6,r7,lr}
   cmp r0, r2
-  ITTT pl
+  ittt pl
     mov r4, r0  ; then
     mov r0, r2  ; then
     mov r2, r4  ; then
   cmp r1, r3
-  ITTT pl
+  ittt pl
     mov r4, r1  ; then
     mov r1, r3  ; then
     mov r3, r4  ; then
@@ -17,7 +17,7 @@ pBoxAsm:
   orrs r4, r3
   bmi .pBoxReturn     ; if x1 or y1 are negative, exit
   cmp r2, #128
-  IT PL
+ it pl
     movs r2, #127       ; if x1 > 127, x1 = 127
   cmp r1, #0
   IT MI
