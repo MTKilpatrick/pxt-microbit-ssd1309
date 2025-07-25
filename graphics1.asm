@@ -4,12 +4,12 @@
 pBoxAsm:
   push {r4,r5,r6,r7,lr}
   cmp r0, r2
-  ITTT PL
+  ITTT pl
     mov r4, r0  ; then
     mov r0, r2  ; then
     mov r2, r4  ; then
   cmp r1, r3
-  ITTT PL
+  ITTT pl
     mov r4, r1  ; then
     mov r1, r3  ; then
     mov r3, r4  ; then
