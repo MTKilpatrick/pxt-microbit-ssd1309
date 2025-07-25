@@ -2,56 +2,50 @@
 
 
 pBoxAsm:
-	push {r4,r5,r6,r7,lr}
-    cmp r0, r2
-    bmi .pBox1
-    mov r4, r0
-    mov r0, r2
-    mov r2, r4
-.pBox1:
-    cmp r1, r3
-    bmi .pBox2
-    mov r4, r1
-    mov r1, r3
-    mov r3, r4
-.pBox2:
-    mov r4, r2
-    orrs r4, r3
-    bmi .pBoxReturn     ; if x1 or y1 are negative, exit
-    cmp r2, #128
-    bmi .pBox5
+  push {r4,r5,r6,r7,lr}
+  cmp r0, r2
+  ITTT PL
+    mov r4, r0  ; then
+    mov r0, r2  ; then
+    mov r2, r4  ; then
+  cmp r1, r3
+  ITTT PL
+    mov r4, r1  ; then
+    mov r1, r3  ; then
+    mov r3, r4  ; then
+  mov r4, r2
+  orrs r4, r3
+  bmi .pBoxReturn     ; if x1 or y1 are negative, exit
+  cmp r2, #128
+  IT PL
     movs r2, #127       ; if x1 > 127, x1 = 127
-.pBox5:
-    cmp r1, #0
-    bpl .pBox3
+  cmp r1, #0
+  IT MI
     movs r1, #0         ; if y0 < 0, y0 = 0
-.pBox3:
-    cmp r3, #63
-    bls .pBox4
+  cmp r3, #63
+  IT HI
     movs r3, #63        ; if y1 > 63, y1 = 63
-.pBox4:
-    cmp r0, #0
-    bpl .pBox6
+  cmp r0, #0
+  IT MI
     movs r0, #0         ; if x0 < 0, x0 = 0
-.pBox6:
-	movs r4, #7
-	ands r4, r1				; r4 = (y0 & 7)
-	movs r6, #0xff
-	lsls r6, r4				; r6 = 0xff << (y0 & 7) bitmask
-	lsrs r5, r1, #3			; r5 = (y0 >> 3)
-	cmp r5, #7				; if (y0 > 63) return
-	bhi .pBoxReturn
-	lsls r4, r5, #7			; r4 = 128 * (y0>>3)
-	adds r4, r4, r0			; r4 = x0 + 128 * (y0>>3)
-    subs r7, r2, r0         ; r7 = x1 - x0
-    lsrs r1, r3, #3         ; r1 = y1 >>3
-	movs r2, #7
-	ands r2, r3             ; r2 = y1 & 7
-	bl ssd1309::getMyBufferData
-	adds r4, r4, r0
-	bl ssd1309::getPlotState    
-	subs r1, r1, r5 		; r1 = j = (y1>>3) - (y0>>3)
-	bne .pBoxElse
+  movs r4, #7
+  ands r4, r1				; r4 = (y0 & 7)
+  movs r6, #0xff
+  lsls r6, r4				; r6 = 0xff << (y0 & 7) bitmask
+  lsrs r5, r1, #3			; r5 = (y0 >> 3)
+  cmp r5, #7				; if (y0 > 63) return
+  bhi .pBoxReturn
+  lsls r4, r5, #7			; r4 = 128 * (y0>>3)
+  adds r4, r4, r0			; r4 = x0 + 128 * (y0>>3)
+  subs r7, r2, r0         ; r7 = x1 - x0
+  lsrs r1, r3, #3         ; r1 = y1 >>3
+  movs r2, #7
+  ands r2, r3             ; r2 = y1 & 7
+  bl ssd1309::getMyBufferData
+  adds r4, r4, r0
+  bl ssd1309::getPlotState    
+  subs r1, r1, r5 		; r1 = j = (y1>>3) - (y0>>3)
+  bne .pBoxElse
     ; r0 - state
     ; r1 - (y1 >>3) - (y0 >>3) 
     ; r2 - y1 & 7
@@ -61,98 +55,98 @@ pBoxAsm:
     ; r6 - bit mask
     ; r7 - x1 - x0
     ; just one row of bits...
-	movs r3, #0xfe
-	lsls r3, r2			; r3 = 0xfe << (y1 & 7)
-	eors r6, r3			; bitmask r6 = r6 EOR r3
-    b .pBoxEndStore         ; do the row fill same as last row
+  movs r3, #0xfe
+  lsls r3, r2			; r3 = 0xfe << (y1 & 7)
+  eors r6, r3			; bitmask r6 = r6 EOR r3
+  b .pBoxEndStore         ; do the row fill same as last row
 .pBoxElse:
-    bl pBoxRowFill
+  bl pBoxRowFill
 .pBoxLoop2:
-    adds r4, #128
-    subs r1, #1
-    beq .pBoxLoopOut
-    movs r3, #0x00
-    subs r3, r3, r0
-    mov r5, r7
+  adds r4, #128
+  subs r1, #1
+  beq .pBoxLoopOut
+  movs r3, #0x00
+  subs r3, r3, r0
+  mov r5, r7
 .pBoxLoop1:
-    strb r3, [r4, r5]
-    subs r5, #1
-    bpl .pBoxLoop1
-    b .pBoxLoop2
+  strb r3, [r4, r5]
+  subs r5, #1
+  bpl .pBoxLoop1
+  b .pBoxLoop2
 .pBoxLoopOut:
-	movs r6, #2
-	lsls r6, r2	
-	subs r6, #1			; bitmask = (2 << (y1 & 7)) - 1;
+  movs r6, #2
+  lsls r6, r2	
+  subs r6, #1			; bitmask = (2 << (y1 & 7)) - 1;
 .pBoxEndStore:
-    bl pBoxRowFill
+  bl pBoxRowFill
 .pBoxReturn:
-    pop {r4,r5,r6,r7,pc}
+  pop {r4,r5,r6,r7,pc}
 
 pBoxRowFill:
-    mov r5, r7
-    cmp r0, #1
-    bne .pBoxRFLF
+  mov r5, r7
+  cmp r0, #1
+  bne .pBoxRFLF
 .pBoxRFLT:
-	ldrb r3, [r4, r5]
-	orrs r3, r6
-	strb r3, [r4, r5]
-    subs r5, #1
-    bpl .pBoxRFLT
-	mov pc, lr
+  ldrb r3, [r4, r5]
+  orrs r3, r6
+  strb r3, [r4, r5]
+  subs r5, #1
+  bpl .pBoxRFLT
+  mov pc, lr
 .pBoxRFLF:
-	ldrb r3, [r4, r5]
-	bics r3, r6
-	strb r3, [r4, r5]
-    subs r5, #1
-    bpl .pBoxRFLF
-    mov pc, lr
+  ldrb r3, [r4, r5]
+  bics r3, r6
+  strb r3, [r4, r5]
+  subs r5, #1
+  bpl .pBoxRFLF
+  mov pc, lr
 
 
 
 .vLineNeg:
-	movs r1, #0		; if y0 < 0, y0 = 0
-	cmp r2, #0		; if y1 < 0, exit
-	bpl .vLine2
-	b .vLineReturn	
+  movs r1, #0		; if y0 < 0, y0 = 0
+  cmp r2, #0		; if y1 < 0, exit
+  bpl .vLine2
+  b .vLineReturn	
 .vLineStart:
-    mov r2, r3
+  mov r2, r3
 ; vertical line plot
 ; r0 = x
 ; r1 = y0
 ; r2 = y1
 vLineAsm:
-	push {r4,r5,r6,lr}
-    lsrs r3, r0, #7
-    bne .vLineReturn        ; if x out of range, exit
-	cmp r1, r2				
-	bmi .vLine1
-	mov r3, r2				; if (y0 > y1) {y = y1, y1 = y0}
-	mov r2, r1
+  push {r4,r5,r6,lr}
+  lsrs r3, r0, #7
+  bne .vLineReturn        ; if x out of range, exit
+  cmp r1, r2				
+  IT PL
+    mov r3, r2				; if (y0 > y1) {y = y1, y1 = y0}
+    mov r2, r1
     mov r1, r3
 .vLine1:
-	cmp r1, #0
-	bmi .vLineNeg
+  cmp r1, #0
+  bmi .vLineNeg
 .vLine2:
-	lsrs r3, r2, #6
-	bne .vLine3
-	movs r3, #63			; if (y1 > 63) y1 = 63;
+  lsrs r3, r2, #6
+  IT EQ
+    movs r3, #63			; if (y1 > 63) y1 = 63;
 .vLine3:
-	lsrs r5, r1, #3			; r5 = (y0 >> 3)
-	cmp r5, #7				; if (y0 > 63) return
-	bhi .vLineReturn
-	lsls r3, r5, #7			; r3 = 128 * (y>>3)
-	adds r4, r3, r0			; r4 = x + 128 * (y>>3)
+  lsrs r5, r1, #3			; r5 = (y0 >> 3)
+  cmp r5, #7				; if (y0 > 63) return
+  bhi .vLineReturn
+  lsls r3, r5, #7			; r3 = 128 * (y>>3)
+  adds r4, r3, r0			; r4 = x + 128 * (y>>3)
 	
-	movs r3, #7
-	ands r3, r1				; r3 = (y & 7)
-	movs r6, #0xff
-	lsls r6, r3				; r6 = 0xff << (y & 7) bitmask
-	lsrs r1, r2, #3			; r1 = (y1 >> 3)
-	bl ssd1309::getMyBufferData
-	adds r4, r4, r0
-	bl ssd1309::getPlotState
-	subs r1, r1, r5			; r1 = j
-	bne .vLineElse          ; if more than one line got to Else
+  movs r3, #7
+  ands r3, r1				; r3 = (y & 7)
+  movs r6, #0xff
+  lsls r6, r3				; r6 = 0xff << (y & 7) bitmask
+  lsrs r1, r2, #3			; r1 = (y1 >> 3)
+  bl ssd1309::getMyBufferData
+  adds r4, r4, r0
+  bl ssd1309::getPlotState
+  subs r1, r1, r5			; r1 = j
+  bne .vLineElse          ; if more than one line got to Else
     ; r0 - state
     ; r1 - y1 >> 3 - y >>3
     ; r2 - y1
@@ -161,50 +155,44 @@ vLineAsm:
     ; r5 - 
     ; r6 - bit mask
 	
-	movs r5, #7
-	ands r5, r2
-	movs r3, #0xfe
-	lsls r3, r5			; r3 = 0xfe << (y1 & 7)
-	eors r6, r3				; bitmask r6 = r6 EOR r3
-    b .vLineEndStore
+  movs r5, #7
+  ands r5, r2
+  movs r3, #0xfe
+  lsls r3, r5			; r3 = 0xfe << (y1 & 7)
+  eors r6, r3				; bitmask r6 = r6 EOR r3
+  b .vLineEndStore
 .vLineElse:
-	ldrb r3, [r4, #0]
-	cmp r0, #1
-	bne .vLineFalse2    
-	orrs r3, r6
-	strb r3, [r4, #0]
-	movs r5, #0xff
-	b .vLine4
-.vLineFalse2:
-	movs r5, #0
-	bics r3, r6
-	strb r3, [r4, #0]
+  ldrb r3, [r4, #0]
+  cmp r0, #1
+  ITTEE EQ  
+    movs r5, #0xff  ; then 
+    orrs r3, r6  ; then
+      movs r5, #0 ; else
+      bics r3, r6 ; else
+  strb r3, [r4, #0]
 .vLine4:
-	adds r4, #128
+  adds r4, #128
 ;	cmp r1, #1
 ;	beq .vLineLoopOut
-	subs r1, #1
-    beq .vLineLoopOut
-	strb r5, [r4, #0]
-	b .vLine4	
+  subs r1, #1
+  beq .vLineLoopOut
+  strb r5, [r4, #0]
+  b .vLine4	
 .vLineLoopOut:
-	movs r3, #7
-	ands r3, r2         ; y1 & 7
-	movs r6, #2
-	lsls r6, r3	
-	subs r6, #1			; bitmask = (2 << (y1 & 7)) - 1;
+  movs r3, #7
+  ands r3, r2         ; y1 & 7
+  movs r6, #2
+  lsls r6, r3	
+  subs r6, #1			; bitmask = (2 << (y1 & 7)) - 1;
 .vLineEndStore:
-	ldrb r3, [r4, #0]
-	cmp r0, #1
-	bne .vLineFalse3
-	orrs r3, r6
-    b .vLineReturnstrb
-.vLineFalse3:
-	bics r3, r6
-.vLineReturnstrb:
-	strb r3, [r4, #0]
+  ldrb r3, [r4, #0]
+  cmp r0, #1
+  ITE EQ
+    orrs r3, r6  ; then
+    bics r3, r6  ; else
+  strb r3, [r4, #0]
 .vLineReturn:
-	pop {r4, r5, r6, pc}
+  pop {r4, r5, r6, pc}
 
 
 pLineAsm:
