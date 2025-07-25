@@ -17,7 +17,7 @@ pBoxAsm:
   orrs r4, r3
   bmi .pBoxReturn     ; if x1 or y1 are negative, exit
   cmp r2, #128
-  IT PL
+  IT pl
     movs r2, #127       ; if x1 > 127, x1 = 127
   cmp r1, #0
   IT MI
