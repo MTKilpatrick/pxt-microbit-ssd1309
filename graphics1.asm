@@ -20,7 +20,7 @@ pBoxAsm:
  it pl
     movs r2, #127       ; if x1 > 127, x1 = 127
   cmp r1, #0
-  IT MI
+  it mi
     movs r1, #0         ; if y0 < 0, y0 = 0
   cmp r3, #63
   IT HI
