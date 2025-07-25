@@ -4,7 +4,7 @@
 pBoxAsm:
   push {r4,r5,r6,r7,lr}
   cmp r0, r2
-  ittt pl
+  it pl
     mov r4, r0  ; then
     mov r0, r2  ; then
     mov r2, r4  ; then
